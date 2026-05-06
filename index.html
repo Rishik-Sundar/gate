@@ -2,133 +2,495 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Gate — SmashKarts</title>
+<title>Gate Karts</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: #0b0d18; color: #fff; font-family: 'Trebuchet MS', sans-serif; overflow: hidden; }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  html, body { height: 100%; background: #1a1030; color: #fff; font-family: 'Trebuchet MS', sans-serif; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  canvas { background: #2a1a4a; image-rendering: pixelated; max-width: 100%; max-height: 100%; }
 
-  #landing {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at 30% 20%, #ff2e93 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, #00e0ff 0%, transparent 50%),
-                #0b0d18;
-    text-align: center;
-    padding: 20px;
+  #hud {
+    position: fixed; top: 10px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between;
+    pointer-events: none; font-weight: 900; text-shadow: 2px 2px 0 #000;
+    z-index: 5;
   }
-  h1 {
-    font-size: clamp(48px, 10vw, 120px);
-    font-weight: 900;
-    letter-spacing: 4px;
-    text-shadow: 4px 4px 0 #000, 0 0 20px #ff2e93;
-    margin-bottom: 10px;
+  #hud .score { font-size: 22px; }
+  #hud .weapon { font-size: 18px; background: rgba(0,0,0,0.5); padding: 6px 14px; border-radius: 8px; }
+
+  #menu, #over {
+    position: fixed; inset: 0; background: rgba(10,5,30,0.92);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 20px; z-index: 10;
   }
-  .sub {
-    font-size: clamp(16px, 2.5vw, 22px);
-    opacity: 0.9;
-    margin-bottom: 40px;
-  }
+  h1 { font-size: clamp(40px, 8vw, 90px); letter-spacing: 4px;
+       text-shadow: 4px 4px 0 #000, 0 0 20px #ff2e93; margin-bottom: 8px; }
+  .sub { font-size: 18px; opacity: 0.85; margin-bottom: 30px; }
+  .controls { font-size: 15px; line-height: 1.8; margin-bottom: 30px; opacity: 0.9; }
+  .controls b { color: #ffe066; }
   button {
-    font-family: inherit;
-    font-size: clamp(20px, 3vw, 28px);
-    font-weight: 900;
-    padding: 18px 50px;
-    border: 4px solid #fff;
-    border-radius: 12px;
-    background: #ff2e93;
-    color: #fff;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+    font-family: inherit; font-size: 24px; font-weight: 900;
+    padding: 16px 44px; border: 4px solid #fff; border-radius: 12px;
+    background: #ff2e93; color: #fff; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 2px;
     box-shadow: 0 6px 0 #000, 0 0 30px rgba(255,46,147,0.6);
-    transition: transform 0.1s, box-shadow 0.1s;
   }
-  button:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #000, 0 0 40px rgba(255,46,147,0.8); }
   button:active { transform: translateY(4px); box-shadow: 0 2px 0 #000; }
-
-  .hint {
-    margin-top: 30px;
-    font-size: 13px;
-    opacity: 0.6;
-  }
-
-  #frameWrap {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: #000;
-  }
-  #frameWrap iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-  }
-  #exit {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 10;
-    padding: 8px 14px;
-    font-size: 14px;
-    background: rgba(0,0,0,0.7);
-    border: 2px solid #fff;
-    border-radius: 6px;
-    box-shadow: none;
-    letter-spacing: 1px;
-  }
-  #fs {
-    position: fixed;
-    top: 10px;
-    right: 100px;
-    z-index: 10;
-    padding: 8px 14px;
-    font-size: 14px;
-    background: rgba(0,0,0,0.7);
-    border: 2px solid #fff;
-    border-radius: 6px;
-    box-shadow: none;
-    letter-spacing: 1px;
-  }
+  #over { display: none; }
+  #overTitle { color: #ffe066; }
 </style>
 </head>
 <body>
 
-<div id="landing">
-  <h1>🏎️ THE GATE</h1>
-  <div class="sub">Your portal to <b>SmashKarts</b> — buckle up.</div>
-  <button id="enter">ENTER GATE</button>
-  <div class="hint">Tip: hit the fullscreen button once you're in.</div>
+<div id="wrap"><canvas id="c" width="1280" height="800"></canvas></div>
+
+<div id="hud" style="display:none">
+  <div class="score" id="score"></div>
+  <div class="weapon" id="weapon">No weapon</div>
 </div>
 
-<div id="frameWrap">
-  <button id="fs">⛶ Fullscreen</button>
-  <button id="exit">✕ Exit</button>
-  <iframe id="game" allow="fullscreen; autoplay; gamepad" allowfullscreen></iframe>
+<div id="menu">
+  <h1>🏎️ GATE KARTS</h1>
+  <div class="sub">Battle 3 bots in the arena. First to <b>10 kills</b> wins.</div>
+  <div class="controls">
+    <b>WASD</b> or <b>Arrows</b> — drive<br>
+    <b>Space</b> — shoot rocket / drop mine<br>
+    Drive over <b>📦 boxes</b> to grab weapons
+  </div>
+  <button id="play">PLAY</button>
+</div>
+
+<div id="over">
+  <h1 id="overTitle">YOU WIN!</h1>
+  <div class="sub" id="overSub"></div>
+  <button id="again">PLAY AGAIN</button>
 </div>
 
 <script>
-  const landing = document.getElementById('landing');
-  const wrap = document.getElementById('frameWrap');
-  const frame = document.getElementById('game');
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
 
-  document.getElementById('enter').onclick = () => {
-    landing.style.display = 'none';
-    wrap.style.display = 'block';
-    frame.src = 'https://smashkarts.io/';
+// ---------- input ----------
+const keys = {};
+addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if ([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+});
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// ---------- world ----------
+const COLORS = ['#ff2e93','#00e0ff','#ffe066','#7cff66'];
+const NAMES = ['YOU','BOT-1','BOT-2','BOT-3'];
+
+// arena obstacles (rectangles)
+const walls = [
+  {x:300,  y:200, w:120, h:40},
+  {x:860,  y:200, w:120, h:40},
+  {x:300,  y:560, w:120, h:40},
+  {x:860,  y:560, w:120, h:40},
+  {x:600,  y:380, w:80,  h:40},
+  {x:200,  y:380, w:40,  h:120},
+  {x:1040, y:380, w:40,  h:120},
+];
+
+let karts = [];
+let rockets = [];
+let mines = [];
+let pickups = [];
+let particles = [];
+let running = false;
+let winner = null;
+
+// ---------- helpers ----------
+function rectHit(x, y, r) {
+  for (const w of walls) {
+    if (x + r > w.x && x - r < w.x + w.w && y + r > w.y && y - r < w.y + w.h) return w;
+  }
+  return null;
+}
+function spawnPoint() {
+  for (let i = 0; i < 50; i++) {
+    const x = 60 + Math.random() * (W - 120);
+    const y = 60 + Math.random() * (H - 120);
+    if (!rectHit(x, y, 30)) return {x, y};
+  }
+  return {x: 100, y: 100};
+}
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function makeKart(i) {
+  const sp = spawnPoint();
+  return {
+    i, name: NAMES[i], color: COLORS[i],
+    x: sp.x, y: sp.y, angle: Math.random() * Math.PI * 2,
+    vx: 0, vy: 0, speed: 0,
+    hp: 100, kills: 0, deaths: 0,
+    weapon: null, ammo: 0,
+    cooldown: 0, alive: true, respawn: 0,
+    isBot: i > 0,
+    aiTarget: null, aiTimer: 0, aiTurn: 0,
   };
-  document.getElementById('exit').onclick = () => {
-    frame.src = '';
-    wrap.style.display = 'none';
-    landing.style.display = 'flex';
-  };
-  document.getElementById('fs').onclick = () => {
-    if (frame.requestFullscreen) frame.requestFullscreen();
-    else if (frame.webkitRequestFullscreen) frame.webkitRequestFullscreen();
-  };
+}
+
+function reset() {
+  karts = [];
+  for (let i = 0; i < 4; i++) karts.push(makeKart(i));
+  rockets = []; mines = []; pickups = []; particles = [];
+  for (let i = 0; i < 3; i++) spawnPickup();
+  winner = null;
+  running = true;
+}
+
+function spawnPickup() {
+  const sp = spawnPoint();
+  pickups.push({x: sp.x, y: sp.y, type: Math.random() < 0.6 ? 'rocket' : 'mine', bob: 0});
+}
+
+// ---------- update ----------
+function killKart(k, by) {
+  k.alive = false; k.respawn = 120; k.deaths++;
+  if (by && by !== k) {
+    by.kills++;
+    if (by.kills >= 10) { winner = by; running = false; }
+  }
+  for (let i = 0; i < 30; i++) {
+    particles.push({
+      x: k.x, y: k.y,
+      vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8,
+      life: 40, color: ['#ff6600','#ffcc00','#ff2222'][Math.floor(Math.random()*3)],
+    });
+  }
+}
+
+function damage(k, amt, by) {
+  if (!k.alive) return;
+  k.hp -= amt;
+  if (k.hp <= 0) killKart(k, by);
+}
+
+function explode(x, y, owner, radius=70, dmg=60) {
+  for (const k of karts) {
+    if (!k.alive) continue;
+    const d = Math.hypot(k.x - x, k.y - y);
+    if (d < radius) damage(k, dmg * (1 - d/radius), owner);
+  }
+  for (let i = 0; i < 20; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
+      life: 30, color: ['#ff6600','#ffcc00','#ffffff'][Math.floor(Math.random()*3)],
+    });
+  }
+}
+
+function fireWeapon(k) {
+  if (!k.weapon || k.cooldown > 0 || !k.alive) return;
+  if (k.weapon === 'rocket') {
+    const sp = 8;
+    rockets.push({
+      x: k.x + Math.cos(k.angle)*30,
+      y: k.y + Math.sin(k.angle)*30,
+      vx: Math.cos(k.angle)*sp + k.vx*0.5,
+      vy: Math.sin(k.angle)*sp + k.vy*0.5,
+      owner: k, life: 90,
+    });
+    k.cooldown = 20;
+  } else if (k.weapon === 'mine') {
+    mines.push({
+      x: k.x - Math.cos(k.angle)*30,
+      y: k.y - Math.sin(k.angle)*30,
+      owner: k, arm: 30,
+    });
+    k.cooldown = 15;
+  }
+  k.ammo--;
+  if (k.ammo <= 0) { k.weapon = null; k.ammo = 0; }
+}
+
+function updateKart(k) {
+  if (!k.alive) {
+    k.respawn--;
+    if (k.respawn <= 0) {
+      const sp = spawnPoint();
+      k.x = sp.x; k.y = sp.y;
+      k.angle = Math.random()*Math.PI*2;
+      k.vx = k.vy = k.speed = 0;
+      k.hp = 100; k.alive = true;
+      k.weapon = null; k.ammo = 0;
+    }
+    return;
+  }
+
+  let throttle = 0, turn = 0, shoot = false;
+
+  if (!k.isBot) {
+    if (keys['w'] || keys['arrowup'])    throttle = 1;
+    if (keys['s'] || keys['arrowdown'])  throttle = -0.6;
+    if (keys['a'] || keys['arrowleft'])  turn = -1;
+    if (keys['d'] || keys['arrowright']) turn = 1;
+    if (keys[' ']) shoot = true;
+  } else {
+    // simple bot AI: chase nearest alive enemy, grab pickups, shoot when aimed
+    k.aiTimer--;
+    if (k.aiTimer <= 0 || !k.aiTarget || !k.aiTarget.alive) {
+      let best = null, bd = Infinity;
+      for (const o of karts) {
+        if (o === k || !o.alive) continue;
+        const d = dist(k, o);
+        if (d < bd) { bd = d; best = o; }
+      }
+      k.aiTarget = best;
+      k.aiTimer = 60 + Math.random()*60;
+    }
+    // sometimes go for pickup if no weapon
+    let goal = k.aiTarget;
+    if (!k.weapon) {
+      let bp = null, bd = Infinity;
+      for (const p of pickups) {
+        const d = Math.hypot(p.x - k.x, p.y - k.y);
+        if (d < bd) { bd = d; bp = p; }
+      }
+      if (bp && bd < 350) goal = bp;
+    }
+    if (goal) {
+      const want = Math.atan2(goal.y - k.y, goal.x - k.x);
+      let diff = want - k.angle;
+      while (diff > Math.PI) diff -= Math.PI*2;
+      while (diff < -Math.PI) diff += Math.PI*2;
+      turn = Math.max(-1, Math.min(1, diff*2));
+      throttle = 1;
+      // shoot if aimed at enemy
+      if (k.weapon && k.aiTarget && Math.abs(diff) < 0.25 && dist(k, k.aiTarget) < 400) shoot = true;
+    }
+    // unstuck
+    if (Math.abs(k.speed) < 0.5) {
+      k.aiTurn += 0.05;
+      turn += Math.sin(k.aiTurn);
+    }
+  }
+
+  // physics
+  const accel = 0.25, maxSpeed = 5, friction = 0.94;
+  k.speed += throttle * accel;
+  k.speed *= friction;
+  if (k.speed > maxSpeed) k.speed = maxSpeed;
+  if (k.speed < -maxSpeed*0.6) k.speed = -maxSpeed*0.6;
+  k.angle += turn * 0.05 * (Math.abs(k.speed)/maxSpeed + 0.3);
+
+  k.vx = Math.cos(k.angle) * k.speed;
+  k.vy = Math.sin(k.angle) * k.speed;
+
+  // move with wall collision (axis-separated)
+  let nx = k.x + k.vx;
+  if (rectHit(nx, k.y, 18) || nx < 18 || nx > W-18) { k.speed *= -0.3; }
+  else k.x = nx;
+  let ny = k.y + k.vy;
+  if (rectHit(k.x, ny, 18) || ny < 18 || ny > H-18) { k.speed *= -0.3; }
+  else k.y = ny;
+
+  // pickups
+  for (let i = pickups.length - 1; i >= 0; i--) {
+    const p = pickups[i];
+    p.bob += 0.1;
+    if (Math.hypot(p.x - k.x, p.y - k.y) < 28) {
+      k.weapon = p.type;
+      k.ammo = p.type === 'rocket' ? 3 : 2;
+      pickups.splice(i, 1);
+      setTimeout(spawnPickup, 4000);
+    }
+  }
+
+  if (k.cooldown > 0) k.cooldown--;
+  if (shoot) fireWeapon(k);
+}
+
+function updateRockets() {
+  for (let i = rockets.length - 1; i >= 0; i--) {
+    const r = rockets[i];
+    r.x += r.vx; r.y += r.vy; r.life--;
+    particles.push({x: r.x, y: r.y, vx: -r.vx*0.2 + (Math.random()-0.5),
+                    vy: -r.vy*0.2 + (Math.random()-0.5), life: 12, color: '#ff8800'});
+    let hit = false;
+    if (rectHit(r.x, r.y, 4) || r.x < 0 || r.x > W || r.y < 0 || r.y > H) hit = true;
+    for (const k of karts) {
+      if (!k.alive || k === r.owner) continue;
+      if (Math.hypot(k.x - r.x, k.y - r.y) < 22) { hit = true; break; }
+    }
+    if (r.life <= 0) hit = true;
+    if (hit) {
+      explode(r.x, r.y, r.owner);
+      rockets.splice(i, 1);
+    }
+  }
+}
+
+function updateMines() {
+  for (let i = mines.length - 1; i >= 0; i--) {
+    const m = mines[i];
+    if (m.arm > 0) { m.arm--; continue; }
+    for (const k of karts) {
+      if (!k.alive) continue;
+      if (Math.hypot(k.x - m.x, k.y - m.y) < 24) {
+        explode(m.x, m.y, m.owner, 60, 70);
+        mines.splice(i, 1);
+        break;
+      }
+    }
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.92; p.vy *= 0.92;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+// ---------- draw ----------
+function drawKart(k) {
+  if (!k.alive) return;
+  ctx.save();
+  ctx.translate(k.x, k.y);
+  ctx.rotate(k.angle);
+  // body
+  ctx.fillStyle = k.color;
+  ctx.fillRect(-16, -12, 32, 24);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(-18, -14, 6, 6);
+  ctx.fillRect(-18,  8, 6, 6);
+  ctx.fillRect( 12, -14, 6, 6);
+  ctx.fillRect( 12,  8, 6, 6);
+  // windshield
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillRect(2, -8, 8, 16);
+  // nose
+  ctx.fillStyle = k.color;
+  ctx.beginPath();
+  ctx.moveTo(16, -10); ctx.lineTo(22, 0); ctx.lineTo(16, 10); ctx.fill();
+  ctx.restore();
+
+  // name + hp bar
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 12px Trebuchet MS';
+  ctx.textAlign = 'center';
+  ctx.fillText(k.name, k.x, k.y - 28);
+  ctx.fillStyle = '#400';
+  ctx.fillRect(k.x - 20, k.y - 24, 40, 4);
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(k.x - 20, k.y - 24, 40 * Math.max(0, k.hp/100), 4);
+}
+
+function draw() {
+  // floor
+  ctx.fillStyle = '#2a1a4a';
+  ctx.fillRect(0, 0, W, H);
+  // grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  // walls
+  for (const w of walls) {
+    ctx.fillStyle = '#5a3a8a';
+    ctx.fillRect(w.x, w.y, w.w, w.h);
+    ctx.fillStyle = '#7a5aaa';
+    ctx.fillRect(w.x, w.y, w.w, 4);
+  }
+  // pickups
+  for (const p of pickups) {
+    const dy = Math.sin(p.bob) * 4;
+    ctx.fillStyle = p.type === 'rocket' ? '#ff4444' : '#44aaff';
+    ctx.fillRect(p.x - 14, p.y - 14 + dy, 28, 28);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 18px Trebuchet MS';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(p.type === 'rocket' ? '🚀' : '💣', p.x, p.y + dy);
+  }
+  // mines
+  for (const m of mines) {
+    ctx.fillStyle = m.arm > 0 ? '#888' : '#f00';
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, 10, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+  }
+  // rockets
+  for (const r of rockets) {
+    ctx.save();
+    ctx.translate(r.x, r.y);
+    ctx.rotate(Math.atan2(r.vy, r.vx));
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(-8, -3, 16, 6);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(6, -2, 4, 4);
+    ctx.restore();
+  }
+  // particles
+  for (const p of particles) {
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = Math.max(0, p.life / 40);
+    ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+  }
+  ctx.globalAlpha = 1;
+  // karts
+  for (const k of karts) drawKart(k);
+}
+
+function updateHUD() {
+  const me = karts[0];
+  const sorted = [...karts].sort((a,b) => b.kills - a.kills);
+  document.getElementById('score').innerHTML =
+    sorted.map(k => `<span style="color:${k.color}">${k.name}: ${k.kills}</span>`).join(' &nbsp; ');
+  document.getElementById('weapon').textContent =
+    me.weapon ? `${me.weapon === 'rocket' ? '🚀' : '💣'} ${me.weapon.toUpperCase()} x${me.ammo}` : 'No weapon — grab a 📦';
+}
+
+// ---------- loop ----------
+function frame() {
+  if (running) {
+    for (const k of karts) updateKart(k);
+    updateRockets();
+    updateMines();
+    updateParticles();
+    draw();
+    updateHUD();
+  } else if (winner) {
+    showOver();
+  }
+  requestAnimationFrame(frame);
+}
+
+function showOver() {
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('over').style.display = 'flex';
+  const youWon = winner === karts[0];
+  document.getElementById('overTitle').textContent = youWon ? 'YOU WIN! 🏆' : `${winner.name} WINS`;
+  document.getElementById('overTitle').style.color = youWon ? '#7cff66' : '#ff6666';
+  document.getElementById('overSub').textContent =
+    `Final score — ${karts.map(k => `${k.name}: ${k.kills}`).join(', ')}`;
+  winner = null;
+}
+
+document.getElementById('play').onclick = () => {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('hud').style.display = 'flex';
+  reset();
+};
+document.getElementById('again').onclick = () => {
+  document.getElementById('over').style.display = 'none';
+  document.getElementById('hud').style.display = 'flex';
+  reset();
+};
+
+frame();
 </script>
 
 </body>
