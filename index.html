@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gate — SmashKarts</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #0b0d18; color: #fff; font-family: 'Trebuchet MS', sans-serif; overflow: hidden; }
+
+  #landing {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 30% 20%, #ff2e93 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, #00e0ff 0%, transparent 50%),
+                #0b0d18;
+    text-align: center;
+    padding: 20px;
+  }
+  h1 {
+    font-size: clamp(48px, 10vw, 120px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    text-shadow: 4px 4px 0 #000, 0 0 20px #ff2e93;
+    margin-bottom: 10px;
+  }
+  .sub {
+    font-size: clamp(16px, 2.5vw, 22px);
+    opacity: 0.9;
+    margin-bottom: 40px;
+  }
+  button {
+    font-family: inherit;
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 900;
+    padding: 18px 50px;
+    border: 4px solid #fff;
+    border-radius: 12px;
+    background: #ff2e93;
+    color: #fff;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 0 6px 0 #000, 0 0 30px rgba(255,46,147,0.6);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  button:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #000, 0 0 40px rgba(255,46,147,0.8); }
+  button:active { transform: translateY(4px); box-shadow: 0 2px 0 #000; }
+
+  .hint {
+    margin-top: 30px;
+    font-size: 13px;
+    opacity: 0.6;
+  }
+
+  #frameWrap {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+  }
+  #frameWrap iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  #exit {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    padding: 8px 14px;
+    font-size: 14px;
+    background: rgba(0,0,0,0.7);
+    border: 2px solid #fff;
+    border-radius: 6px;
+    box-shadow: none;
+    letter-spacing: 1px;
+  }
+  #fs {
+    position: fixed;
+    top: 10px;
+    right: 100px;
+    z-index: 10;
+    padding: 8px 14px;
+    font-size: 14px;
+    background: rgba(0,0,0,0.7);
+    border: 2px solid #fff;
+    border-radius: 6px;
+    box-shadow: none;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div id="landing">
+  <h1>🏎️ THE GATE</h1>
+  <div class="sub">Your portal to <b>SmashKarts</b> — buckle up.</div>
+  <button id="enter">ENTER GATE</button>
+  <div class="hint">Tip: hit the fullscreen button once you're in.</div>
+</div>
+
+<div id="frameWrap">
+  <button id="fs">⛶ Fullscreen</button>
+  <button id="exit">✕ Exit</button>
+  <iframe id="game" allow="fullscreen; autoplay; gamepad" allowfullscreen></iframe>
+</div>
+
+<script>
+  const landing = document.getElementById('landing');
+  const wrap = document.getElementById('frameWrap');
+  const frame = document.getElementById('game');
+
+  document.getElementById('enter').onclick = () => {
+    landing.style.display = 'none';
+    wrap.style.display = 'block';
+    frame.src = 'https://smashkarts.io/';
+  };
+  document.getElementById('exit').onclick = () => {
+    frame.src = '';
+    wrap.style.display = 'none';
+    landing.style.display = 'flex';
+  };
+  document.getElementById('fs').onclick = () => {
+    if (frame.requestFullscreen) frame.requestFullscreen();
+    else if (frame.webkitRequestFullscreen) frame.webkitRequestFullscreen();
+  };
+</script>
+
+</body>
+</html>
